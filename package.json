@@ -13,6 +13,7 @@
     "not ie < 9"
   ],
   "dependencies": {
+    "antd": "^2.8.0",
     "babel-polyfill": "^6.22.0",
     "bluebird": "^3.4.7",
     "body-parser": "^1.16.0",

@@ -4,13 +4,18 @@
  * copy resource to cdn
  */
 import client from 'scp2';
+import { cdn } from '../config';
 
 const scpUtils = {
-    scpTop: function (filePath) {
-        client.scp(filePath, {
-           //info hidden
+    scpTop: function (fileName,callback) {
+        client.scp(fileName, {
+            host: cdn.host,
+            username: cdn.user,
+            password: cdn.pw,
+            path: cdn.path
         }, function(err) {
-        })
+            callback(err);
+        });
     }
 };
 
