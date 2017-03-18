@@ -13,11 +13,7 @@ export const port = process.env.PORT || 3000;
 export const host = process.env.WEBSITE_HOSTNAME || `localhost:${port}`;
 
 export const db = {
-    host: 'localhost',
-    port: 3306,
-    user: 'root',
-    pw: 'tth5containerweb!',
-    database: process.env.DATABASE_URL || 'resource_package'
+
 };
 
 export const cdn = {

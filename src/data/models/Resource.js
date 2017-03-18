@@ -18,10 +18,22 @@ const Resource = Model.define('resources', {
         autoIncrement: true
     },
 
+    application_package:{
+        type: DataType.STRING(100),
+        allowNull: false,
+        comment:'应用application pacakge（唯一标识符）'
+    },
+
     name: {
         type: DataType.STRING(100),
         allowNull: false,
         comment:'资源包名'
+    },
+
+    md5: {
+        type: DataType.STRING(32),
+        allowNull: false,
+        comment: '资源md5'
     },
 
     version: {
@@ -32,13 +44,13 @@ const Resource = Model.define('resources', {
     },
 
     host: {
-        type: DataType.TEXT,
+        type: DataType.STRING(100),
         allowNull: false,
         comment: '资源存放cdn地址'
     },
 
     path: {
-        type: DataType.TEXT,
+        type: DataType.STRING(100),
         allowNull: false,
         comment: '服务器上的存放目录'
     },
@@ -60,12 +72,6 @@ const Resource = Model.define('resources', {
         allowNull: false,
         defaultValue: DataType.NOW,
         comment: '修改时间'
-    },
-
-    md5: {
-        type: DataType.STRING(32),
-        allowNull: false,
-        comment: '资源md5'
     },
 
     expires: {

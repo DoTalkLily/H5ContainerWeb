@@ -16,6 +16,8 @@ import fs from 'fs';
 import ReactDOM from 'react-dom/server';
 import UniversalRouter from 'universal-router';
 import PrettyError from 'pretty-error';
+import morgan from 'morgan';
+import fileStreamRotator from 'file-stream-rotator';
 import App from './components/App';
 import Html from './components/Html';
 import {ErrorPageWithoutStyle} from './routes/error/ErrorPage';
@@ -30,9 +32,26 @@ import configureStore from './store/configureStore';
 import {setRuntimeVariable} from './actions/runtime';
 import {port, auth} from './config';
 import Resource from './data/models/Resource';
-import { cdn } from './config';
+import {cdn} from './config';
+import * as Consts from './constants';
 
 const app = express();
+
+if (app.get('env') == 'production') {
+    var logDir = path.join(__dirname, 'logs');
+    fs.existsSync(logDir) || fs.mkdirSync(logDir);
+    var accessLogStream = fileStreamRotator.getStream({
+        date_format: 'YYYYMMDD',
+        filename: path.join(logDir, 'access-%DATE%.log'),
+        frequency: 'daily',
+        verbose: true
+    });
+
+    app.use(morgan('combined', {stream: accessLogStream}));
+} else {
+    app.use(morgan('dev'));
+}
+
 
 //
 // Tell any CSS tooling (such as Material UI) to use all vendor prefixes if the
@@ -64,6 +83,7 @@ if (__DEV__) {
 
 /**
  *
+ * 创建新资源
  { fieldname: 'file',
   originalname: 'bao.zip',
   encoding: '7bit',
@@ -75,12 +95,12 @@ if (__DEV__) {
  */
 app.post('/resource-upload', uploader, function (req, res) {
     res.send('success');
-    //copy to cdn
+
     let file = req.file;
     let params = req.body;
-
-    scpUtils.scpTop(req.file.path,function(err){
-        if(err) return;
+    //copy to cdn
+    scpUtils.scpTop(req.file.path, function (err) {
+        if (err) return;
         fs.unlink(file.path, err => {
             if (err) return console.error(err)
         })
@@ -92,21 +112,39 @@ app.post('/resource-upload', uploader, function (req, res) {
         host: params.resourceHost || cdn.host,
         path: params.resourcePath || cdn.path + file.originalname,
         md5: file.filename.substring(0, file.filename.indexOf('.')),
-        version: params.version,
+        version: params.version || '0.0.1',
         expires: params.expireDate || dateUtils.getDate(7),
-        description: params.description || 'test'
+        description: params.description,
+        application_package: params.applicationPackage || 'com.github.lzyzsd.jsbridge.example' //mock
     })
-    .then(function (anotherTask) {
+        .then(function (result) {
+            console.log(result);
+        }).catch(function (error) {
+        console.error(error);
+    })
+});
 
+//get resource record
+app.get('/resource', uploader, function (req, res) {
+    if (!req.query.applicationPackage) {
+        return res.send(error(Consts.PARAM_ERROR_CODE, Consts.PARAM_ERROR_MSG));
+    }
+    Resource.findAll({
+        where: {
+            application_package: req.query.applicationPackage
+        }
+    }).then(function (result) {
+        res.send(ok(result));
     }).catch(function (error) {
         console.log(error);
+        res.send(error());
     })
 });
 
 //
-// Register server-side rendering middleware
+// page related
 // -----------------------------------------------------------------------------
-app.get('*', async(req, res, next) => {
+app.get('/*', async(req, res, next) => {
     try {
         const store = configureStore({
             user: req.user || null,
@@ -190,6 +228,21 @@ app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
     res.send(`<!doctype html>${html}`);
 });
 
+function ok(data) {
+    return {
+        data: data,
+        errCode: 0,
+        errMsg: ''
+    }
+}
+
+function error(errCode, errMsg, data){
+    return {
+        data: data,
+        errCode: errCode || -1,
+        errMsg: errMsg || 'service error'
+    }
+}
 //
 // Launch the server
 // -----------------------------------------------------------------------------
